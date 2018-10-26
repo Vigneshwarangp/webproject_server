@@ -3,11 +3,15 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var Websocket = require('ws');
 
 var router = express.Router();
+var wss = new Websocket.Server({noServer: true});
 
 var app = express();
 var store = require('json-fs-store')('./data');
+
+var listen_port = process.env.PORT || 3000;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -62,7 +66,7 @@ router.get('/', function(req, res, next) {
 
 router.get('/books', function(req, res, next) {
   store.list(function (err, books) {
-    res.render('books_view', { count: books.length, books: books});
+    res.render('books_view', { port: listen_port, count: books.length, books: books});
   });
 });
 
@@ -97,7 +101,7 @@ router.post('/borrow_book', function(req, res, next) {
           book.available_quantity = book.available_quantity - 1;
           store.add(book, function (err) {
             if (err) throw err;
-            res.render('books_view', { count: books.length, books: books});
+            res.render('books_view', { port: listen_port, count: books.length, books: books});
           });
       }
     }
@@ -105,6 +109,19 @@ router.post('/borrow_book', function(req, res, next) {
   });
 });
 
+wss.on('connection', function connection(ws) {
+  ws.on('message', function (data) {
+    console.log('message from client', data);
+    // handle incoming messages from client
+     // send message to client
+    // ws.send(data);
+    for( client of wss.clients) {
+      if (client !== ws) {
+        client.send(data);
+      }
+    }
+  });
+});
 
 
 
@@ -128,5 +145,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+app.wss = wss;
 
 module.exports = app;

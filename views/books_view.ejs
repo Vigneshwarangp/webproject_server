@@ -3,6 +3,9 @@
   <head>
     <title>Books</title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script type="text/javascript">
+      console.log('text');
+    </script>
   </head>
   <body>
     <h1>List of books (<%= count %>) </h1>
@@ -33,13 +36,37 @@
             <%= book.available_quantity %>
         </td>
         <td>
-            <form action="/borrow_book" method="POST">
+            <form action="/borrow_book" method="POST" class="borrow-form">
                 <input type="text" name="book_name" value="<%= book.name %>" hidden="true">
-                <input type="submit">
+                <input type="submit" value="Borrow" class="submit-button">
             </form>
         </td>
     </tr>
     <% } %>
     </table>
+    <script type="text/javascript">
+    var protocol;
+    if(window.location.href.startsWith('https')) {
+        protocol = "wss"
+    } else {
+        protocol = "ws"
+    }
+    var ws = new WebSocket(protocol + "://" + location.host + "/ws");
+
+        ws.onmessage = function(message) {
+            console.log("message from server: ");
+            console.log(message.data);
+            if(message.data == 'book borrowed') {
+                window.location.reload();
+            }
+        }
+        function borrow (event) {
+            console.log('websocket message sent: "book borrowed"');
+            ws.send('book borrowed');
+        }
+        for (borrowForm of document.getElementsByClassName('borrow-form')) {
+            borrowForm.onsubmit = borrow;
+        }
+    </script>
   </body>
 </html>
